@@ -1,0 +1,41 @@
+function doPost(e) {
+  try {
+    const planilha = SpreadsheetApp.getActiveSpreadsheet();
+    const aba = planilha.getSheetByName("Fechamento");
+
+    let dados = {};
+
+    if (e && e.parameter && Object.keys(e.parameter).length) {
+      dados = e.parameter;
+    } else if (e && e.postData && e.postData.contents) {
+      dados = JSON.parse(e.postData.contents);
+    }
+
+    aba.appendRow([
+      dados.data || "",
+      dados.colaborador || "",
+      dados.registro || "",
+      dados.turno || "",
+      dados.setorPosto || "",
+      dados.quantidade || "",
+      dados.protocolo || "",
+      dados.dataEnvio || "",
+      dados.horaEnvio || ""
+    ]);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ sucesso: true, mensagem: "Registro salvo com sucesso" }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (erro) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ sucesso: false, mensagem: erro.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet() {
+  return ContentService
+    .createTextOutput(JSON.stringify({ sucesso: true, mensagem: "API Fechamento de Cargas ativa" }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
