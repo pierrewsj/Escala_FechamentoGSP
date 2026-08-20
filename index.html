@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#06111d" />
+  <meta name="description" content="Consulta de escala e fechamento de cargas da Equipe 9132." />
+  <title>Escala Equipe 9132</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="96x96" href="icon-96.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="carregamentoInicial" class="carregamento-inicial" aria-live="polite">
+    <div class="spinner-grande" aria-hidden="true"></div>
+    <strong>Carregando escala...</strong>
+  </div>
+
+  <header class="topo topo-limpo">
+    <div class="marca-app">
+      <div class="marca-titulo-linha">
+        <img src="icon-192.png" alt="Ícone do aplicativo" class="marca-icone" />
+        <div class="marca-textos">
+          <p class="tag">SEGURANÇA PATRIMONIAL</p>
+          <h1>ESCALA EQUIPE 9132</h1>
+          <p id="versaoApp" class="versao-app"></p>
+        </div>
+      </div>
+    </div>
+    <div class="topo-acoes">
+      <span id="statusConexao" class="status-conexao" role="status">Verificando conexão</span>
+      <button id="btnInstalar" class="btn-instalar" hidden>Instalar</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card consulta-unica consulta-card-destaque">
+      <div class="grid-consulta consulta-turno-unico">
+        <div>
+          <label for="selectTurnoConsulta">Turno</label>
+          <select id="selectTurnoConsulta" onchange="trocarTurnoConsulta()"></select>
+        </div>
+      </div>
+    </section>
+
+    <nav class="abas" aria-label="Áreas do aplicativo">
+      <button class="aba aba-hoje ativa" data-aba="resultado" onclick="mostrarHoje()">Hoje</button>
+      <button class="aba aba-consulta" data-aba="resultado" onclick="abrirModalConsulta(this)">Consulta</button>
+      <button class="aba aba-sabado" data-aba="resultado" onclick="mostrarProximoSabado(this)">Sábado HE</button>
+      <button class="aba aba-cargas" data-aba="fechamentoCargas" onclick="abrirAba('fechamentoCargas', this)">Cargas</button>
+      <button class="aba aba-legenda" data-aba="legenda" onclick="abrirAba('legenda', this)">Legenda</button>
+      <button class="aba aba-admin" data-aba="admin" onclick="abrirAba('admin', this)">Admin</button>
+    </nav>
+
+    <div id="modalConsulta" class="modal-app" hidden>
+      <div class="modal-card modal-consulta-card" role="dialog" aria-modal="true" aria-labelledby="tituloModalConsulta">
+        <div class="modal-topo">
+          <div>
+            <h2 id="tituloModalConsulta">Consulta</h2>
+            <p class="muted">Escolha um único tipo de busca.</p>
+          </div>
+          <button type="button" class="modal-fechar" onclick="fecharModalConsulta()" aria-label="Fechar">×</button>
+        </div>
+
+        <div class="grid-consulta modal-grid-consulta">
+          <div>
+            <label for="tipoConsulta">Consultar por</label>
+            <select id="tipoConsulta" onchange="atualizarValorConsulta()">
+              <option value="nome">Nome</option>
+              <option value="dia">Dia</option>
+              <option value="posto">Local / posto</option>
+            </select>
+          </div>
+          <div>
+            <label for="valorConsulta">Seleção</label>
+            <select id="valorConsulta"></select>
+          </div>
+        </div>
+
+        <div class="modal-acoes">
+          <button type="button" class="btn btn-consulta-modal" onclick="executarConsultaModal()">Pesquisar</button>
+          <button type="button" class="btn btn-cancelar-modal" onclick="fecharModalConsulta()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <section id="resultado" class="painel ativo" aria-live="polite">
+      <div id="resultadoConteudo" class="resultado-vazio">Carregando escala...</div>
+    </section>
+
+    <section id="fechamentoCargas" class="painel">
+      <div class="card texto fechamento-card">
+        <div class="titulo-fechamento">
+          <div class="titulo-icone titulo-icone-futuro">
+            <img src="icon-192.png" alt="" class="titulo-icone-img" />
+          </div>
+          <div>
+            <h2>Fechamento de Cargas</h2>
+            <p class="muted">Registro individual com histórico local e envio para o Google Sheets.</p>
+          </div>
+        </div>
+
+        <div class="grid-consulta cargas-grid">
+          <div>
+            <label for="cargaTurnoFiltro">Turno</label>
+            <select id="cargaTurnoFiltro" onchange="trocarTurnoCargas()"></select>
+          </div>
+          <div>
+            <label for="cargaColaborador">Colaborador</label>
+            <select id="cargaColaborador" onchange="preencherDadosCargaPorColaborador(true)"></select>
+          </div>
+          <div>
+            <label for="cargaData">Data</label>
+            <input id="cargaData" type="date" onchange="preencherDadosCargaPorColaborador(true)" />
+          </div>
+          <div>
+            <label for="cargaRegistro">Registro</label>
+            <input id="cargaRegistro" type="text" inputmode="numeric" autocomplete="off" placeholder="Digite o registro" />
+          </div>
+          <div>
+            <label for="cargaQuantidade">Qtd. cargas liberadas</label>
+            <input id="cargaQuantidade" type="number" min="1" step="1" inputmode="numeric" placeholder="Ex.: 12" />
+          </div>
+        </div>
+
+        <div class="dados-auto-cargas">
+          <div>
+            <span>Turno</span>
+            <strong id="cargaTurnoInfo">Selecione um colaborador</strong>
+          </div>
+          <div class="setor-auto-card">
+            <span>Setor / posto na data</span>
+            <strong id="cargaSetorInfo">Selecione um colaborador</strong>
+            <button type="button" class="btn-editar-setor" onclick="abrirEditorSetorCarga()">Editar setor/posto</button>
+          </div>
+        </div>
+
+        <div id="editorSetorCarga" class="editor-setor-carga" hidden>
+          <label for="cargaSetorManual">Alterar setor/posto deste lançamento</label>
+          <select id="cargaSetorManual"></select>
+          <div class="editor-setor-acoes">
+            <button type="button" class="btn pequeno" onclick="aplicarSetorManualCarga()">Aplicar setor</button>
+            <button type="button" class="btn pequeno secundario" onclick="restaurarSetorAutomaticoCarga()">Usar automático</button>
+          </div>
+          <p class="muted mini-ajuda">Para dois ou mais postos, faça um lançamento separado para cada setor.</p>
+        </div>
+
+        <input id="cargaTurno" type="hidden" />
+        <input id="cargaSetor" type="hidden" />
+
+        <div class="status-envio-grade">
+          <div class="status-envio-cargas" id="statusEnvioCargas">
+            <span>Último envio</span>
+            <strong>Nenhum envio realizado neste aparelho</strong>
+          </div>
+          <div class="status-envio-cargas">
+            <span>Fila offline</span>
+            <strong id="filaOfflineInfo">Nenhum lançamento pendente</strong>
+          </div>
+        </div>
+
+        <div class="acoes-cargas">
+          <button id="btnSalvarCargas" class="btn sheets" onclick="salvarPlanilhaCargas()">
+            <span class="btn-texto">Salvar na Planilha</span>
+            <span class="spinner-botao" hidden aria-hidden="true"></span>
+          </button>
+        </div>
+        <p id="msgCargas" class="msg" role="status"></p>
+      </div>
+    </section>
+
+    <section id="legenda" class="painel">
+      <div id="legendaConteudo" class="lista-cards"></div>
+    </section>
+
+    <section id="admin" class="painel">
+      <div class="card texto" id="adminLogin">
+        <h2>Administração</h2>
+        <p>Digite a senha para liberar os cadastros e a montagem da escala.</p>
+        <div class="form-linha">
+          <label for="senhaAdmin">Senha</label>
+          <input id="senhaAdmin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Digite a senha" onkeydown="if(event.key==='Enter') entrarAdmin()" />
+          <button id="btnEntrarAdmin" class="btn principal" onclick="entrarAdmin()">
+            <span class="btn-texto">Entrar</span>
+            <span class="spinner-botao" hidden></span>
+          </button>
+        </div>
+        <p id="msgAdminLogin" class="msg" role="status"></p>
+      </div>
+
+      <div id="areaAdmin" class="admin-area admin-v250" hidden>
+        <div class="card texto admin-header admin-header-v250">
+          <div>
+            <h2>Administração</h2>
+            <p class="muted">A planilha é a fonte oficial. O aparelho mantém uma cópia local para trabalhar mesmo com conexão instável.</p>
+            <div class="status-sync-admin">
+              <span id="statusSincronizacaoAdmin" class="sync-pill pendente">Aguardando</span>
+              <small id="detalheSincronizacaoAdmin" class="muted">Aguardando primeira consulta da planilha</small>
+            </div>
+          </div>
+          <div class="admin-header-acoes">
+            <button class="btn pequeno secundario" type="button" onclick="sincronizarDadosComPlanilha()">Atualizar da planilha</button>
+            <button id="btnDesfazerAdmin" class="btn pequeno btn-desfazer-admin" type="button" onclick="desfazerAcoesAdmin()"><span class="btn-texto">Desfazer ações</span><span class="spinner-botao" hidden></span></button>
+            <button class="btn pequeno" type="button" onclick="sairAdmin()">Sair</button>
+          </div>
+        </div>
+        <div id="alertaInconsistenciasAdmin" class="alerta-inconsistencias-admin" hidden></div>
+
+        <div class="card texto admin-modulo">
+          <div class="titulo-modulo-admin"><span class="numero-modulo">1</span><div><h3>Cadastros</h3><p class="muted">Colaboradores e postos ficam centralizados aqui.</p></div></div>
+          <div class="grid-admin">
+            <div class="crud-card crud-card-interno">
+              <h4>Colaboradores</h4>
+              <div class="crud-modos" role="group" aria-label="Ações de colaboradores">
+                <button type="button" class="crud-modo crud-adicionar" onclick="abrirCrudAdmin('colaborador','adicionar')">Adicionar</button>
+                <button type="button" class="crud-modo crud-editar" onclick="abrirCrudAdmin('colaborador','editar')">Editar</button>
+                <button type="button" class="crud-modo crud-excluir" onclick="abrirCrudAdmin('colaborador','excluir')">Excluir</button>
+              </div>
+              <div class="movimentacao-equipe-acoes" role="group" aria-label="Movimentação da equipe">
+                <button type="button" class="btn-movimentacao btn-retirar-equipe" onclick="abrirRetiradaEquipe()">Retirar da equipe</button>
+                <button type="button" class="btn-movimentacao btn-preencher-vaga" onclick="abrirPreencherVaga()">Preencher vaga</button>
+              </div>
+              <p class="muted mini-ajuda">Use <strong>Retirar da equipe</strong> quando alguém sair: os 31 dias ficam preservados como <strong>A DEFINIR</strong>. Use <strong>Excluir</strong> somente para cadastro incorreto ou duplicado.</p>
+            </div>
+            <div class="crud-card crud-card-interno">
+              <h4>Postos, local e setor</h4>
+              <div class="crud-modos" role="group" aria-label="Ações de postos">
+                <button type="button" class="crud-modo crud-adicionar" onclick="abrirCrudAdmin('posto','adicionar')">Adicionar</button>
+                <button type="button" class="crud-modo crud-editar" onclick="abrirCrudAdmin('posto','editar')">Editar</button>
+                <button type="button" class="crud-modo crud-excluir" onclick="abrirCrudAdmin('posto','excluir')">Excluir</button>
+              </div>
+              <p class="muted mini-ajuda">Na edição, o código do posto fica protegido. Localização e setor podem ser alterados normalmente.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card texto admin-modulo">
+          <div class="titulo-modulo-admin"><span class="numero-modulo">2</span><div><h3>Escala fixa</h3><p class="muted">Aqui ficam somente os postos dos dias 01 a 31. Férias, folga e afastamentos não alteram mais esta escala.</p></div></div>
+          <div class="grid-consulta admin-escala-simples">
+            <div>
+              <label for="adminColaborador">Colaborador</label>
+              <select id="adminColaborador" onchange="carregarEscala()"></select>
+            </div>
+          </div>
+          <div id="gradeDiasAdmin" class="grade-dias-admin"></div>
+          <button class="btn principal" type="button" onclick="salvarEscala()">Salvar escala fixa</button>
+        </div>
+
+        <div class="card texto admin-modulo">
+          <div class="titulo-modulo-admin"><span class="numero-modulo">3</span><div><h3>Situações e coberturas</h3><p class="muted">Situações usam datas reais e nunca apagam o posto de referência.</p></div></div>
+          <div class="alerta-logica-situacao">
+            <strong>Destaque automático</strong>
+            <span>Durante férias, folga, ausência, atestado, afastamento ou treinamento o nome fica amarelo. No dia seguinte à data final, o destaque sai automaticamente e a escala volta ao visual normal.</span>
+          </div>
+          <div class="acoes-situacao-admin">
+            <button type="button" class="btn-situacao-escala" onclick="abrirModalSituacaoEscala()">Nova situação</button>
+          </div>
+          <h4 class="subtitulo-admin">Situações cadastradas</h4>
+          <div id="listaSituacoesAdmin" class="lista-resumo-admin"></div>
+
+          <div class="separador-admin"></div>
+          <h4>Cobertura temporária</h4>
+          <p class="muted">Defina quem será coberto e escolha se a cobertura será feita por uma pessoa específica ou por quem estiver escalado em um posto. O posto de origem de quem cobre fica vazio naquele dia.</p>
+          <div class="grid-consulta cobertura-grid cobertura-grid-base">
+            <div><label for="coberturaOrigem">Colaborador a ser coberto</label><select id="coberturaOrigem" onchange="renderizarPreviaCoberturaAdmin()"></select></div>
+            <div><label for="coberturaDataInicio">Data inicial</label><input id="coberturaDataInicio" type="date" onchange="ajustarDatasCobertura(); renderizarPreviaCoberturaAdmin()" /></div>
+            <div><label for="coberturaDataFim">Data final</label><input id="coberturaDataFim" type="date" onchange="renderizarPreviaCoberturaAdmin()" /></div>
+          </div>
+
+          <div class="bloco-tipo-cobertura">
+            <span class="rotulo-cobertura">Cobertura feita por</span>
+            <div class="opcoes-tipo-cobertura" role="group" aria-label="Tipo de cobertura">
+              <button id="btnCoberturaPorColaborador" type="button" class="opcao-tipo-cobertura ativo" onclick="definirTipoCobertura('COLABORADOR')">Colaborador</button>
+              <button id="btnCoberturaPorPosto" type="button" class="opcao-tipo-cobertura" onclick="definirTipoCobertura('POSTO')">Posto</button>
+            </div>
+          </div>
+
+          <div id="coberturaFonteColaborador" class="fonte-cobertura-admin">
+            <label for="coberturaDestino">Colaborador que fará a cobertura</label>
+            <select id="coberturaDestino" onchange="renderizarPreviaCoberturaAdmin()"></select>
+          </div>
+          <div id="coberturaFontePosto" class="fonte-cobertura-admin" hidden>
+            <label for="coberturaPostoFonte">Posto que fornecerá a cobertura</label>
+            <select id="coberturaPostoFonte" onchange="renderizarPreviaCoberturaAdmin()"></select>
+            <small class="muted mini-ajuda">Ex.: se selecionar o posto 77, quem estiver escalado no 77 em cada dia será deslocado para cobrir o colaborador. O 77 ficará vazio e não gerará nova pendência.</small>
+          </div>
+
+          <div id="previewCoberturaAdmin" class="preview-cobertura-admin">
+            <div class="resultado-vazio compacto">Preencha colaborador, período e origem da cobertura para ver a prévia dia a dia.</div>
+          </div>
+          <button class="btn principal" type="button" onclick="registrarCobertura()">Registrar cobertura</button>
+          <div id="listaCoberturasAdmin" class="lista-resumo-admin lista-coberturas-admin"></div>
+        </div>
+
+        <div class="card texto escala-sabado-admin admin-modulo">
+          <div class="titulo-modulo-admin titulo-sabado-modulo">
+            <span class="numero-modulo">4</span>
+            <div><h3>Escala de sábado — Hora Extra</h3><p class="muted">Rascunhos ficam somente para edição; apenas escalas publicadas aparecem para os colaboradores.</p></div>
+            <span id="statusEscalaSabado" class="status-he rascunho">Não carregada</span>
+          </div>
+
+          <div id="listaEscalasSabadoAdmin" class="lista-escalas-sabado-admin"></div>
+
+          <div class="grid-consulta grade-config-sabado">
+            <div>
+              <label for="dataEscalaSabado">Data do sábado</label>
+              <input id="dataEscalaSabado" type="date" onchange="carregarEditorEscalaSabado(true)" />
+            </div>
+            <div>
+              <label for="turnoEscalaSabado">Turno</label>
+              <select id="turnoEscalaSabado" onchange="carregarEditorEscalaSabado(true)"></select>
+              <small class="muted ajuda-turno-he">Ao escolher data e turno, um rascunho existente é carregado automaticamente.</small>
+            </div>
+          </div>
+
+          <div class="acoes-rapidas-sabado">
+            <button class="btn pequeno secundario" type="button" onclick="copiarSabadoAnterior()">Copiar sábado anterior</button>
+            <button class="btn pequeno secundario" type="button" onclick="preencherPostosEscalaFixaSabado()">Carregar postos da escala fixa</button>
+            <button class="btn pequeno secundario" type="button" onclick="marcarTodosSabado(true)">Marcar todos disponíveis</button>
+            <button class="btn pequeno secundario" type="button" onclick="marcarTodosSabado(false)">Limpar seleção</button>
+          </div>
+
+          <div class="montagem-automatica-he">
+            <div class="cabecalho-montagem-he">
+              <div>
+                <h4>Montagem automática equilibrada</h4>
+                <p class="muted">Escolha os postos necessários e o sistema prioriza quem trabalhou menos sábados. Pessoas em férias, atestado ou afastamento aparecem destacadas como indisponíveis.</p>
+              </div>
+              <button id="btnMontarAutomaticamenteSabado" class="btn principal btn-montar-he" type="button" onclick="montarEscalaSabadoAutomaticamente()" aria-disabled="true">Montar automaticamente</button>
+            </div>
+            <div id="statusMontagemAutomaticaSabado" class="status-montagem-auto-he" role="status" aria-live="polite">
+              <div class="status-montagem-titulo">Complete os passos para montar automaticamente.</div>
+            </div>
+            <div class="acoes-postos-he">
+              <button class="btn pequeno secundario" type="button" onclick="marcarPostosNecessariosSabado(true)">Todos os postos</button>
+              <button class="btn pequeno secundario" type="button" onclick="marcarPostosNecessariosSabado(false)">Limpar postos</button>
+            </div>
+            <div id="postosNecessariosSabado" class="postos-necessarios-he" aria-label="Postos necessários para a escala de sábado"></div>
+            <p class="muted mini-ajuda">A contagem considera somente escalas publicadas. Rascunhos não entram no histórico.</p>
+          </div>
+
+          <div id="resumoEscalaSabado" class="resumo-he">Escolha a data e o turno.</div>
+          <div id="listaEscalaSabado" class="lista-escala-sabado"></div>
+          <div id="conflitosSabado" class="conflitos-lista"></div>
+
+          <div class="acoes-publicacao-sabado">
+            <button id="btnSalvarRascunhoSabado" class="btn secundario" type="button" onclick="salvarEscalaSabado('RASCUNHO')"><span class="btn-texto">Salvar rascunho</span><span class="spinner-botao" hidden></span></button>
+            <button id="btnPublicarSabado" class="btn principal" type="button" onclick="salvarEscalaSabado('PUBLICADA')"><span class="btn-texto">Publicar escala</span><span class="spinner-botao" hidden></span></button>
+          </div>
+        </div>
+
+        <p id="msgAdmin" class="msg" role="status"></p>
+      </div>
+    </section>
+
+
+    <div id="modalSituacaoEscala" class="modal-app" hidden>
+      <div class="modal-card modal-situacao-card" role="dialog" aria-modal="true" aria-labelledby="tituloModalSituacaoEscala">
+        <div class="modal-topo">
+          <div>
+            <h2 id="tituloModalSituacaoEscala">Situação do colaborador</h2>
+            <p class="muted">Selecione o colaborador, informe o período e toque em uma situação. O posto da escala fixa será preservado e o destaque amarelo será controlado pelas datas reais.</p>
+          </div>
+          <button type="button" class="modal-fechar" onclick="fecharModalSituacaoEscala()" aria-label="Fechar">×</button>
+        </div>
+
+        <div class="modal-situacao-conteudo">
+          <section class="bloco-situacao-modal">
+            <h3>1. Colaborador</h3>
+            <div id="filtroTurnoSituacao" class="filtro-turno-situacao" aria-label="Filtrar colaboradores por turno"></div>
+            <input id="buscaColaboradorSituacao" class="modal-busca" type="search" placeholder="Pesquisar colaborador" oninput="renderizarColaboradoresSituacao()" />
+            <div id="listaColaboradoresSituacao" class="modal-lista-opcoes lista-colaboradores-situacao"></div>
+          </section>
+
+          <section class="bloco-situacao-modal">
+            <h3>2. Período</h3>
+            <div class="grid-datas-situacao">
+              <div>
+                <label for="situacaoDataInicio">Data inicial</label>
+                <input id="situacaoDataInicio" type="date" onchange="ajustarDatasSituacao()" />
+              </div>
+              <div>
+                <label for="situacaoDataFim">Data final</label>
+                <input id="situacaoDataFim" type="date" onchange="ajustarDatasSituacao()" />
+              </div>
+            </div>
+            <p class="muted mini-ajuda">O período pode atravessar meses. O destaque amarelo aparece somente entre a data inicial e a data final e sai automaticamente no dia seguinte ao término.</p>
+          </section>
+
+          <section class="bloco-situacao-modal">
+            <h3>3. Situação</h3>
+            <p id="ajudaSituacaoSelecao" class="muted mini-ajuda">Escolha primeiro o colaborador e o período. Depois as situações serão liberadas para confirmação.</p>
+            <div id="listaSituacoesEscala" class="grade-situacoes-modal"></div>
+          </section>
+
+          <section class="bloco-situacao-modal">
+            <h3>4. Situações deste colaborador</h3>
+            <div id="situacoesAtuaisColaborador" class="lista-registros-temporais"></div>
+          </section>
+        </div>
+
+        <div class="modal-acoes modal-situacao-acoes">
+          <button type="button" class="btn secundario" onclick="removerSituacaoEscala()">Remover situação</button>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="modalCrudAdmin" class="modal-app" hidden>
+      <div class="modal-card modal-crud-card" role="dialog" aria-modal="true" aria-labelledby="tituloModalCrudAdmin">
+        <div class="modal-topo">
+          <div>
+            <h2 id="tituloModalCrudAdmin">Cadastro</h2>
+            <p id="subtituloModalCrudAdmin" class="muted"></p>
+          </div>
+          <button type="button" class="modal-fechar" onclick="fecharModalCrudAdmin()" aria-label="Fechar">×</button>
+        </div>
+        <div id="conteudoModalCrudAdmin" class="modal-crud-conteudo"></div>
+        <div id="acoesModalCrudAdmin" class="modal-acoes modal-crud-acoes"></div>
+      </div>
+    </div>
+
+
+    <div id="modalPreviewSabado" class="modal-app" hidden>
+      <div class="modal-card modal-preview-sabado-card" role="dialog" aria-modal="true" aria-labelledby="tituloModalPreviewSabado">
+        <div class="modal-topo">
+          <div>
+            <h2 id="tituloModalPreviewSabado">Rascunho de sábado</h2>
+            <p id="subtituloModalPreviewSabado" class="muted">Confira a escala antes de publicar.</p>
+          </div>
+          <button type="button" class="modal-fechar" onclick="fecharPreviewSabado()" aria-label="Fechar">×</button>
+        </div>
+        <div id="resumoModalPreviewSabado" class="preview-sabado-resumo"></div>
+        <div id="listaModalPreviewSabado" class="preview-sabado-lista"></div>
+        <div id="acoesModalPreviewSabado" class="modal-acoes preview-sabado-acoes">
+          <button id="btnEditarPreviewSabado" type="button" class="btn secundario" onclick="editarEscalaSabadoDoPreview()">Editar rascunho</button>
+          <button id="btnExcluirPreviewSabado" type="button" class="btn perigo" onclick="excluirRascunhoSabadoDoPreview()">Excluir rascunho</button>
+          <button id="btnPublicarPreviewSabado" type="button" class="btn principal" onclick="publicarRascunhoSabadoDoPreview()"><span class="btn-texto">Publicar escala</span><span class="spinner-botao" hidden></span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="modalConfirmacaoApp" class="modal-app" hidden>
+      <div class="modal-card modal-confirmacao-card" role="dialog" aria-modal="true" aria-labelledby="tituloModalConfirmacaoApp">
+        <div id="iconeModalConfirmacaoApp" class="modal-confirmacao-icone">!</div>
+        <h2 id="tituloModalConfirmacaoApp">Confirmar ação</h2>
+        <p id="mensagemModalConfirmacaoApp" class="modal-confirmacao-mensagem"></p>
+        <div class="modal-acoes">
+          <button id="btnCancelarConfirmacaoApp" type="button" class="btn secundario" onclick="resolverConfirmacaoApp(false)">Cancelar</button>
+          <button id="btnConfirmarConfirmacaoApp" type="button" class="btn perigo" onclick="resolverConfirmacaoApp(true)">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="modalSalvoPlanilha" class="modal-app" hidden>
+      <div class="modal-card modal-sucesso-card" role="dialog" aria-modal="true">
+        <div class="modal-sucesso-icone">✓</div>
+        <h2>Salvo na planilha</h2>
+        <p id="modalSalvoMensagem" class="muted">Registro enviado com sucesso.</p>
+        <button type="button" class="btn modal-ok" onclick="fecharModalSalvamento()">OK</button>
+      </div>
+    </div>
+
+    <div id="modalAtualizacao" class="modal-app" hidden>
+      <div class="modal-card modal-sucesso-card" role="dialog" aria-modal="true">
+        <div class="modal-atualizacao-icone">↻</div>
+        <h2>Nova versão disponível</h2>
+        <p class="muted">Atualize para receber as últimas correções sem perder os dados salvos.</p>
+        <div class="modal-acoes">
+          <button type="button" class="btn" onclick="aplicarAtualizacaoPWA()">Atualizar agora</button>
+          <button type="button" class="btn secundario" onclick="fecharModalAtualizacao()">Depois</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+  </main>
+
+  <footer>
+    <p>Segurança Patrimonial • Escala Equipe 9132</p>
+    <p id="ultimaAtualizacao" class="ultima-atualizacao"></p>
+    <p class="observacao-final"><strong>Observação:</strong> situações temporárias são exibidas sem alterar o posto original da escala fixa.</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="dados.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
